@@ -1,0 +1,12 @@
+numpy
+pandas
+sklearn
+networkx
+spacy
+gensim
+nltk
+torch
+transformers
+datasets
+more-itertools
+keybert
