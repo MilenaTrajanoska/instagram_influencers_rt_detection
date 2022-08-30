@@ -6,11 +6,11 @@ from datetime import datetime
 import os
 from more_itertools import grouper
 import logging
-logging.basicConfig(filename='./logs/partitioning.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(filename='../logs/partitioning.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
-POSTS_DATA_PATH = './data/posts_info/info'
-PROCESSED_DATA_PATH = './data/processed_data'
+POSTS_DATA_PATH = '../data/posts_info/info'
+PROCESSED_DATA_PATH = '../data/processed_data'
 NGRAM_LENGTH = 4
 kw_model = KeyBERT()
 global_keywords = {}
@@ -23,10 +23,10 @@ def checkpoint_index():
     global INDEXED_FILES
     global global_keywords
 
-    with open(f'./data/global_keywords_index.json', 'r') as f:
+    with open(f'../data/global_keywords_index.json', 'r') as f:
         content = json.loads(f.read())
         new_dict = content | global_keywords
-    with open(f'./data/global_keywords_index.json', 'w') as f:
+    with open(f'../data/global_keywords_index.json', 'w') as f:
         f.write(json.dumps(new_dict))
     global_keywords = {}
 

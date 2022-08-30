@@ -1,7 +1,7 @@
 import glob
 import json
 import os
-PROCESSED_DATA_PATHS = [f'.\\data\\processed_data\\2019\\{sub}' for sub in range(1, 6)]
+PROCESSED_DATA_PATHS = [f'..\\data\\processed_data\\2019\\{sub}' for sub in range(1, 6)]
 global_keywords = {}
 
 
@@ -44,5 +44,5 @@ if __name__ == '__main__':
 
     [create_index(file) for file in files]
 
-    with open('./data/global_keywords_index.json', 'w') as f:
+    with open('../data/global_keywords_index.json', 'w') as f:
         f.write(json.dumps(global_keywords))
