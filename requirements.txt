@@ -61,6 +61,7 @@ responses==0.18.0
 rich==12.5.1
 scikit-learn==1.1.2
 scipy==1.8.1
+seaborn==0.11.2
 sentence-transformers==2.2.2
 sentencepiece==0.1.97
 six==1.16.0
