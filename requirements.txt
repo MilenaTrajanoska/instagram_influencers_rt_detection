@@ -10,3 +10,4 @@ transformers
 datasets
 more-itertools
 keybert
+sentence-transformers
