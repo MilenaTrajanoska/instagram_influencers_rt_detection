@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 import numpy as np
 import torch
@@ -5,17 +7,40 @@ import warnings
 import json
 import concurrent
 
-from more_itertools import grouper
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import threading
+
+from utils.datesoputil import create_dates_range
+
 warnings.filterwarnings('ignore')
 np.random.seed(123)
 
 
 MODEL = f"cardiffnlp/twitter-roberta-base-sentiment"
 NETWORK_FILES_PATH = '../data/healthy_food_posts/posts.json'
-DATA_PATH = '../data/posts_info/info'
+DATA_PATH = '../data/processed_data'
 DEVICE = torch.device('cuda')
+ALPHA_DECAY = 0.3
+
+lock = threading.Lock()
+
+CURRENT_DATE = datetime.datetime(2019, 3, 1)
+TIME_FRAME_WEEKS = datetime.timedelta(weeks=6)
+DATES = create_dates_range(CURRENT_DATE, TIME_FRAME_WEEKS, reversed=True)
+
+
+def decaying_function(day, cumulative_freq=7):
+    if day > len(DATES) - cumulative_freq:
+        return ALPHA_DECAY ** (day // cumulative_freq)
+    return (1 - ALPHA_DECAY) * (ALPHA_DECAY ** (day // cumulative_freq))
+
+
+MAP_DATE_TO_COEFFICIENT = {
+    date: decaying_function(i) for i, date in enumerate(DATES)
+}
+
+print(MAP_DATE_TO_COEFFICIENT)
 
 sentiment_mapping = {
     0: -1.2,  # negative
@@ -23,7 +48,7 @@ sentiment_mapping = {
     2: 1.2,  # positive
 }
 
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 tokenizer = AutoTokenizer.from_pretrained(MODEL)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL).to(DEVICE)
 
@@ -52,6 +77,14 @@ def read_single_info_file(file_path):
     with open(file_path, 'r') as f:
         content = json.loads(f.read())
 
+    parts = file_path.split('/')
+    year = eval(parts[-4])
+    month = eval(parts[-3])
+    day = eval(parts[-2])
+
+    date = datetime.datetime(year, month, day)
+    coeff = MAP_DATE_TO_COEFFICIENT[date]
+
     node_data = {
         'username': content['owner']['username'],
         'is_verified': 1 if content['owner']['is_verified'] else 0,
@@ -73,6 +106,9 @@ def read_single_info_file(file_path):
         node_data['total_tagged_users'] = len(tagged_users)
         node_data['num_tagged_verified_users'] = len([v for v in tagged_users if v['node']['user']['is_verified']])
         for tag in tagged_users:
+            if tag['node']['user']['username'] == node_data['username']:
+                continue
+
             tag_edges = {
                 'user_owner': tag['node']['user']['username'],
                 'user_other': node_data['username'],
@@ -82,11 +118,11 @@ def read_single_info_file(file_path):
                 'sentiment_score': sentiment_mapping[2],
                 'spam_score': 1,
             }
-            tag_edges['weight'] = tag_edges['sentiment_score'] * tag_edges['owner_verified'] * \
+            tag_edges['weight'] = coeff * tag_edges['sentiment_score'] * tag_edges['owner_verified'] * \
                                   (
                                           (tag_edges['post_likes'] * 10 + node_data['num_comments'] * 100)
                                           / (total_posts * followers)
-                                          + tag_edges['owner_verified'] / total_posts
+                                          + node_data['num_tagged_verified_users'] / total_posts
                                    )
 
             edge_data.append(tag_edges)
@@ -98,6 +134,9 @@ def read_single_info_file(file_path):
 
     for comment in comments:
         try:
+            if comment['node']['owner']['username'] == node_data['username']:
+                continue
+
             comment_edges = {
                 'user_owner': node_data['username'],
                 'user_other': comment['node']['owner']['username'],
@@ -123,17 +162,13 @@ if __name__ == '__main__':
     with open(NETWORK_FILES_PATH, 'r') as f:
         files = json.loads(f.read())
 
+    print(f'Total posts: {len(files)}')
+
     influencers_meta = pd.read_csv('../data/influencers.txt', sep='\t', header=0)
     influencers_meta.dropna(inplace=True)
 
     for file in tqdm(files):
         read_single_info_file(f'{DATA_PATH}/{file}')
-
-    futures = [
-        executor.submit(read_single_info_file, file)
-        for file in grouper(5, files)
-    ]
-    concurrent.futures.wait(futures)
 
     nodes = pd.DataFrame(nodes)
     edges = pd.DataFrame(edges)
