@@ -34,10 +34,11 @@ def plot_graph(
         arrow_style='-|>',
         font_color='black',
         font_size=10,
+        node_color=None,
 ):
     plt.figure(figsize=figure_size)
     pos = nx.spring_layout(graph)
-    nx.draw_networkx_nodes(graph, pos, node_size=node_size)
+    nx.draw_networkx_nodes(graph, pos, node_size=node_size, node_color=node_color)
     nx.draw_networkx_edges(graph, pos, alpha=alpha, style=line_style, arrows=draw_arrows, width=line_width, arrowstyle=arrow_style)
     if draw_labels:
         nx.draw_networkx_labels(graph, pos, font_color=font_color, font_size=font_size)
@@ -90,7 +91,8 @@ def get_graph_statistics_and_visualizations(
         arrow_style='-|>',
         font_color='black',
         font_size=10,
-        color_palette='Blues_d'
+        color_palette='Blues_d',
+        node_color = None,
 ):
     num_nodes = graph.number_of_nodes()
     print(f'The graph has {num_nodes} nodes')
@@ -124,6 +126,7 @@ def get_graph_statistics_and_visualizations(
         arrow_style,
         font_color,
         font_size,
+        node_color
     )
     plot_degree_distribution(
         node_degrees,
