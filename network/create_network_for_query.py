@@ -29,6 +29,9 @@ CURRENT_DATE = datetime.datetime(2019, 3, 1)
 TIME_FRAME_WEEKS = datetime.timedelta(weeks=6)
 DATES = create_dates_range(CURRENT_DATE, TIME_FRAME_WEEKS, reversed=True)
 
+INFLUENCER_COUNT = 0
+REGULAR_USER_COUNT = 0
+
 
 def decaying_function(day, cumulative_freq=7):
     if day > len(DATES) - cumulative_freq:
@@ -73,6 +76,8 @@ def encode_and_predict_sentiment(text):
 def read_single_info_file(file_path):
     global nodes
     global edges
+    global INFLUENCER_COUNT
+    global REGULAR_USER_COUNT
 
     with open(file_path, 'r') as f:
         content = json.loads(f.read())
@@ -95,10 +100,13 @@ def read_single_info_file(file_path):
     user_meta = influencers_meta[influencers_meta['Username'] == node_data['username']]
 
     if not len(user_meta):
-        return
-
-    followers = user_meta['#Followers'].values[0] + 1
-    total_posts = user_meta['#Posts'].values[0] + 1
+        followers = 100
+        total_posts = 5
+        REGULAR_USER_COUNT += 1
+    else:
+        followers = user_meta['#Followers'].values[0] + 1
+        total_posts = user_meta['#Posts'].values[0] + 1
+        INFLUENCER_COUNT += 1
 
     edge_data = []
     try:
@@ -192,3 +200,6 @@ if __name__ == '__main__':
 
     nodes.to_csv('../data/healthy_food_posts/node_data.csv')
     edges.to_csv('../data/healthy_food_posts/edge_data.csv')
+
+    print(f'Regular users: {REGULAR_USER_COUNT}')
+    print(f'Influencers: {INFLUENCER_COUNT}')
